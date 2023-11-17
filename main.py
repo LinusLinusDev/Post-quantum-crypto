@@ -41,6 +41,8 @@ print(f"c = {c}")
 recovered_B = recover_v(c, B)
 recovered_H = recover_v(c, H)
 print(f"recovered point with good base B = {recovered_B}")
-print(f"recovered message with good base B = {np.linalg.inv(H).dot(recovered_B)}")
+print(
+    f"recovered message with good base B = {np.linalg.inv(H).dot(recovered_B)}")
 print(f"recovered point with bad base H = {recovered_H}")
-print(f"recovered message with bad base H = {np.linalg.inv(H).dot(recovered_H)}")
+print(
+    f"recovered message with bad base H = {np.linalg.inv(H).dot(recovered_H)}")
