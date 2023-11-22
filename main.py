@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from functions import linear_independence, HNF, recover_v
+from functions import linear_independence, HNF, get_errors, recover_v
 
 
 # "good" lattice basis as private key
@@ -31,8 +31,7 @@ else:
     m = H.dot(np.array(x))
 
     # short noise vector
-    errors = [random.uniform(-1.5, 1.5) for _ in range(dim)]
-    e = np.array(errors)
+    e = get_errors(B)
 
     # encrypted lattice point by adding noise
     c = m + e
