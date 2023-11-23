@@ -1,14 +1,16 @@
 import math
+import random
 import numpy as np
 
 
 def get_errors(A):
-    errors = []
-    dim = np.shape(A)[0]
+    magnitudes = []
     for vector in A.T:
-        error_range = np.linalg.norm(vector)/dim
-        errors.append(random.uniform(-error_range, error_range))
-    return np.array(errors)
+        magnitudes.append(np.linalg.norm(vector))
+    error = np.array([random.uniform(-1, 1) for _ in range(np.shape(A)[0])])
+    error *= min(magnitudes) * random.uniform(-0.5, 0.5) / \
+        np.linalg.norm(error)
+    return error
 
 
 def linear_independence(matrix):

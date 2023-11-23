@@ -1,7 +1,7 @@
-import random
 import numpy as np
 from functions import linear_independence, HNF, get_errors, recover_v
 
+np.set_printoptions(suppress=True)
 
 # "good" lattice basis as private key
 
