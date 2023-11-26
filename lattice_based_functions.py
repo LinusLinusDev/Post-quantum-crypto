@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 
-def get_errors(A):
+def get_errors(A):  # generate error-vector
     magnitudes = []
     for vector in A.T:
         magnitudes.append(np.linalg.norm(vector))
@@ -13,6 +13,7 @@ def get_errors(A):
     return error
 
 
+# check if columnvectors in basis are linear independent
 def linear_independence(matrix):
     independence = 1
     for i in range(matrix.shape[0]):

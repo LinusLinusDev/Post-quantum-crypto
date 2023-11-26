@@ -1,12 +1,12 @@
 import numpy as np
-from functions import linear_independence, HNF, get_errors, recover_v
+from lattice_based_functions import linear_independence, HNF, get_errors, recover_v
 
 np.set_printoptions(suppress=True)
 
 # "good" lattice basis as private key
 
 # since this one is hard-coded, you have to edit it here if you want to try another one
-# it has to be quadrativ and the columnvectors should be linear independent
+# it has to be quadratic and the columnvectors should be linear independent
 B = np.array([[1, 2, 3, 4, 5, 6],
               [2, 3, 4, 5, 6, 1],
               [3, 4, 5, 6, 1, 2],
