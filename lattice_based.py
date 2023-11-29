@@ -1,4 +1,5 @@
 import numpy as np
+import sympy as sp
 import random
 import math
 
@@ -7,20 +8,11 @@ np.set_printoptions(suppress=True)
 
 # check if columnvectors in basis are linear independent
 def linear_independence(matrix):
-    independence = 1
-    for i in range(matrix.shape[0]):
-        for j in range(matrix.shape[0]):
-            if i != j:
-                inner_product = np.inner(
-                    matrix[:, i],
-                    matrix[:, j]
-                )
-                norm_i = np.linalg.norm(matrix[:, i])
-                norm_j = np.linalg.norm(matrix[:, j])
-
-                if np.abs(inner_product - norm_j * norm_i) < 1E-5:
-                    independence = 0
-    return independence
+    _, inds = sp.Matrix(matrix).rref()
+    if len(inds) == np.shape(matrix)[0]:
+        return 1
+    else:
+        return 0
 
 
 # extended euclidian algorithm
