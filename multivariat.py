@@ -3,9 +3,6 @@ import galois
 import numpy as np
 import sympy as sp
 
-np.random.seed(0)
-random.seed(0)
-
 
 class UOV:
     def __init__(self, o: int, v: int, K: int = 2):
@@ -90,15 +87,16 @@ class UOV:
 
     def sign(self, Y: list):
         GF = galois.GF(self.__K)
-
-        vinegar = GF([random.randint(0, self.__K - 1)
-                     for _ in range(self.__v)])
         v_variables = sp.symbols(f"x'{self.__o}:{self.__n}", integer=True)
         o_variables = sp.symbols(f"x':{self.__o}", integer=True)
         substitutions = {}
+
+        vinegar = GF([random.randint(0, self.__K - 1)
+                     for _ in range(self.__v)])
         for i in range(self.__v):
             substitutions[v_variables[i]] = vinegar[i]
         equations = []
+
         for m in range(self.__o):
             equation = self.__private[m].subs(substitutions)
             equation -= Y[m]
@@ -123,6 +121,6 @@ class UOV:
         b = GF(temp_y)"""
 
 
-X = UOV(2, 1)
+X = UOV(2, 3)
 print(X.get_private())
 print(X.sign([0, 1]))
