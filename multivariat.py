@@ -27,8 +27,7 @@ class UOV:
             substitutions[variables[x]] = self.__S[x]
         for m in range(self.__o):
             equation = self.__private[m].subs(substitutions)
-            equation %= self.__K
-            equation = sp.expand(equation)
+            equation = sp.expand(equation, modulus=self.__K)
             public.append(equation)
         return public
 
@@ -91,6 +90,7 @@ class UOV:
         o_variables = sp.symbols(f"x':{self.__o}", integer=True)
         substitutions = {}
         A = GF.Zeros((self.__o, self.__o))
+        b = GF.Zeros(self.__o)
         failures = 0
 
         while True:
@@ -102,17 +102,17 @@ class UOV:
 
             for m in range(self.__o):
                 equation = self.__private[m].subs(substitutions)
-                equation -= Y[m]
+                # equation -= Y[m]
+                equation = sp.expand(equation, modulus=self.__K)
                 equations.append(equation)
 
             equations_x, equations_y = sp.linear_eq_to_matrix(
                 equations, o_variables)
 
-            b = GF.Zeros(self.__o)
             for i in range(self.__o):
                 for j in range(self.__o):
-                    A[i, j] = int(equations_x[i, j] % self.__K)
-                b[i] = int(equations_y[i] % self.__K)
+                    A[i, j] = int(equations_x[i, j])
+                b[i] = (int(equations_y[i]) + Y[i]) % self.__K
 
             try:
                 x = np.linalg.solve(A, b)
@@ -128,8 +128,8 @@ class UOV:
         return np.concatenate([x, vinegar])
 
 
-X = UOV(2, 4)
-document = [0, 0]
+X = UOV(3, 6)
+document = [0, 0, 1]
 
 print(f"Private system: {X.get_private()}")
 print()
