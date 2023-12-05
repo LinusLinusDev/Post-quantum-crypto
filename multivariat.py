@@ -19,6 +19,7 @@ class UOV:
     def get_private(self):
         return self.__private
 
+    # Get composition of affine and quadratic map as public key
     def get_public(self):
         public = []
         substitutions = {}
@@ -31,11 +32,12 @@ class UOV:
             public.append(equation)
         return public
 
+    # generate single multivariate quadratic equation with n variables
     def generate_quadratic(self):
         equation = [np.random.randint(
             self.__K, size=(self.__n, self.__n))] + [np.random.randint(self.__K, size=self.__n)] + [random.randint(0, self.__K - 1)]
 
-        # lower triangle not required
+        # lower triangle not required since multiplication is commutative
         for i in range(1, self.__n):
             for j in range(i):
                 equation[0][i, j] = 0
@@ -46,11 +48,16 @@ class UOV:
                 equation[0][i, j] = 0
         return equation
 
+    # generate affine map with n variables and equations, has to be invertible
     def generate_linear(self):
-        equation = [np.random.randint(
-            self.__K, size=self.__n)] + [random.randint(0, self.__K - 1)]
-        return equation
+        while True:
+            matrix = np.random.randint(self.__K, size=(self.__n, self.__n))
+            if np.linalg.det(matrix) % self.__K != 0:
+                break
+        vector = np.random.randint(self.__K, size=self.__n)
+        return [matrix, vector]
 
+    # generate o quadratic equations with n variables and create sympy expressions
     def generate_private(self):
         variables = sp.symbols(f"x':{self.__n}", integer=True)
         private = []
@@ -70,30 +77,37 @@ class UOV:
             private.append(equation)
         return private
 
+    # generate affine map and create sympy expression
     def generate_S(self):
         variables = sp.symbols(f"x:{self.__n}", integer=True)
         S = []
-        for _ in range(self.__n):
-            equation_matrix = self.generate_linear()
+        equations_matrix = self.generate_linear()
+        for i in range(self.__n):
             equation = 0
-            for i in range(self.__n):
-                if equation_matrix[0][i] > 0:
-                    equation += equation_matrix[0][i]*variables[i]
-            if equation_matrix[1] > 0:
-                equation += equation_matrix[1]
+            for j in range(self.__n):
+                if equations_matrix[0][i, j] > 0:
+                    equation += equations_matrix[0][i, j]*variables[j]
+            if equations_matrix[1][i] > 0:
+                equation += equations_matrix[1][i]
             S.append(equation)
         return S
 
+    # sign list of o integers mod K
     def sign(self, Y: list):
         GF = galois.GF(self.__K)
-        v_variables = sp.symbols(f"x'{self.__o}:{self.__n}", integer=True)
-        o_variables = sp.symbols(f"x':{self.__o}", integer=True)
-        substitutions = {}
         A = GF.Zeros((self.__o, self.__o))
         b = GF.Zeros(self.__o)
+
+        v_variables = sp.symbols(f"x'{self.__o}:{self.__n}", integer=True)
+        o_variables = sp.symbols(f"x':{self.__o}", integer=True)
+        variables = sp.symbols(f"x:{self.__n}", integer=True)
+
+        substitutions = {}
         failures = 0
 
+        # inverting quadratic map
         while True:
+            # set vinegar variables randomly and substitute them in private system
             vinegar = GF([random.randint(0, self.__K - 1)
                           for _ in range(self.__v)])
             for i in range(self.__v):
@@ -102,34 +116,50 @@ class UOV:
 
             for m in range(self.__o):
                 equation = self.__private[m].subs(substitutions)
-                # equation -= Y[m]
                 equation = sp.expand(equation, modulus=self.__K)
                 equations.append(equation)
 
+            # cast linear system to GF matrices to solve them over finite field K
             equations_x, equations_y = sp.linear_eq_to_matrix(
                 equations, o_variables)
 
             for i in range(self.__o):
                 for j in range(self.__o):
                     A[i, j] = int(equations_x[i, j])
+                # add values from Y
                 b[i] = (int(equations_y[i]) + Y[i]) % self.__K
 
+            # try to solve system, if not possible set different vinegar variables
             try:
                 x = np.linalg.solve(A, b)
                 break
             except:
                 failures += 1
                 print(f"Failure {failures}")
+                # stop trying after 10 attempts
                 if failures == 10:
                     print("Can not sign document.")
                     return -1
                 continue
 
-        return np.concatenate([x, vinegar])
+        # safe results and vinegar variables as total result of inverted quadratic system
+        y_new = np.concatenate([x, vinegar])
+
+        # invert affine map over finite field
+        A = GF.Zeros((self.__n, self.__n))
+        b = GF.Zeros(self.__n)
+        equations_x, equations_y = sp.linear_eq_to_matrix(
+            self.__S, variables)
+        for i in range(self.__n):
+            for j in range(self.__n):
+                A[i, j] = int(equations_x[i, j])
+            b[i] = (int(equations_y[i]) + int(y_new[i])) % self.__K
+
+        return np.linalg.solve(A, b)
 
 
-X = UOV(3, 6)
-document = [0, 0, 1]
+X = UOV(2, 4)
+document = [1, 0]
 
 print(f"Private system: {X.get_private()}")
 print()
