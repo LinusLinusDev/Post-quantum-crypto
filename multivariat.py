@@ -48,11 +48,12 @@ class UOV:
                 equation[0][i, j] = 0
         return equation
 
-    # generate affine map with n variables and equations, has to be invertible
+    # generate affine map with n variables and equations, has to be invertible over finite field K
     def generate_linear(self):
+        GF = galois.GF(self.__K)
         while True:
-            matrix = np.random.randint(self.__K, size=(self.__n, self.__n))
-            if np.linalg.det(matrix) % self.__K != 0:
+            matrix = GF.Random((self.__n, self.__n))
+            if np.linalg.det(matrix) != 0:
                 break
         vector = np.random.randint(self.__K, size=self.__n)
         return [matrix, vector]
@@ -86,7 +87,7 @@ class UOV:
             equation = 0
             for j in range(self.__n):
                 if equations_matrix[0][i, j] > 0:
-                    equation += equations_matrix[0][i, j]*variables[j]
+                    equation += int(equations_matrix[0][i, j])*variables[j]
             if equations_matrix[1][i] > 0:
                 equation += equations_matrix[1][i]
             S.append(equation)
@@ -158,8 +159,8 @@ class UOV:
         return np.linalg.solve(A, b)
 
 
-X = UOV(2, 4)
-document = [1, 0]
+X = UOV(8, 8)
+document = [1, 0, 1, 0, 1, 0, 1, 1]
 
 print(f"Private system: {X.get_private()}")
 print()
