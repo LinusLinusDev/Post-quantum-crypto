@@ -90,37 +90,43 @@ class UOV:
         v_variables = sp.symbols(f"x'{self.__o}:{self.__n}", integer=True)
         o_variables = sp.symbols(f"x':{self.__o}", integer=True)
         substitutions = {}
-
-        vinegar = GF([random.randint(0, self.__K - 1)
-                     for _ in range(self.__v)])
-        for i in range(self.__v):
-            substitutions[v_variables[i]] = vinegar[i]
-        equations = []
-
-        for m in range(self.__o):
-            equation = self.__private[m].subs(substitutions)
-            equation -= Y[m]
-            equations.append(equation)
-
-        equations_x, equations_y = sp.linear_eq_to_matrix(
-            equations, o_variables)
-
         A = GF.Zeros((self.__o, self.__o))
-        b = GF.Zeros(self.__o)
-        for i in range(self.__o):
-            for j in range(self.__o):
-                A[i, j] = int(equations_x[i, j] % self.__K)
-            b[i] = int(equations_y[i] % self.__K)
+        failures = 0
 
-        x = np.linalg.solve(A, b)
+        while True:
+            vinegar = GF([random.randint(0, self.__K - 1)
+                          for _ in range(self.__v)])
+            for i in range(self.__v):
+                substitutions[v_variables[i]] = vinegar[i]
+            equations = []
+
+            for m in range(self.__o):
+                equation = self.__private[m].subs(substitutions)
+                equation -= Y[m]
+                equations.append(equation)
+
+            equations_x, equations_y = sp.linear_eq_to_matrix(
+                equations, o_variables)
+
+            b = GF.Zeros(self.__o)
+            for i in range(self.__o):
+                for j in range(self.__o):
+                    A[i, j] = int(equations_x[i, j] % self.__K)
+                b[i] = int(equations_y[i] % self.__K)
+
+            try:
+                x = np.linalg.solve(A, b)
+                break
+            except:
+                failures += 1
+                print(f"Failure {failures}")
+                if failures == 10:
+                    print("Can not sign document.")
+                    return -1
+                continue
 
         return np.concatenate([x, vinegar])
 
-        """print(temp_y)
-       # A = GF(equations_x)
-        b = GF(temp_y)"""
 
-
-X = UOV(2, 3)
-print(X.get_private())
-print(X.sign([0, 1]))
+X = UOV(2, 4)
+print(X.sign([0, 0]))
