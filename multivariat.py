@@ -24,11 +24,11 @@ class UOV:
         substitutions = {}
         variables = sp.symbols(f"x':{self.__n}", integer=True)
         for x in range(self.__n):
-            substitutions[variables[x]] = S[x]
+            substitutions[variables[x]] = self.__S[x]
         for m in range(self.__o):
             equation = self.__private[m].subs(substitutions)
-            equation = sp.expand(equation)
             equation %= self.__K
+            equation = sp.expand(equation)
             public.append(equation)
         return public
 
@@ -129,4 +129,13 @@ class UOV:
 
 
 X = UOV(2, 4)
-print(X.sign([0, 0]))
+document = [0, 0]
+
+print(f"Private system: {X.get_private()}")
+print()
+print(f"Private map S: {X.get_S()}")
+print()
+print(f"Public system: {X.get_public()}")
+print()
+print(f"Document: {document}")
+print(f"Signature: {X.sign(document)}")
