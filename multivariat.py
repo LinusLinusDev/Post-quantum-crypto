@@ -3,6 +3,12 @@ import galois
 import numpy as np
 import sympy as sp
 
+seed = -1
+
+if seed >= 0:
+    random.seed(seed)
+    np.random.seed(seed)
+
 
 class UOV:
     def __init__(self, o: int, v: int, K: int = 2):
@@ -159,8 +165,8 @@ class UOV:
         return np.linalg.solve(A, b)
 
 
-X = UOV(8, 8)
-document = [1, 0, 1, 0, 1, 0, 1, 1]
+X = UOV(2, 2)
+document = [1, 0, 1, 0, 1]
 
 print(f"Private system: {X.get_private()}")
 print()
