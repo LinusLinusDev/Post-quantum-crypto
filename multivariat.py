@@ -166,7 +166,7 @@ class UOV:
 
 
 X = UOV(2, 2)
-document = [1, 0, 1, 0, 1]
+document = [1, 0]
 
 print(f"Private system: {X.get_private()}")
 print()
