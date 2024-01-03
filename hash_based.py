@@ -1,4 +1,4 @@
-from hashlib import sha256
+from hashlib import sha256, sha384
 import random
 
 
@@ -17,7 +17,7 @@ def generate_public_key(x: list, f: callable, K: int) -> list:
     return y
 
 
-f = sha256
+f = sha384
 n = f("".encode("UTF-8")).digest_size * 8
 K = pow(2, n)
 
