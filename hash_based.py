@@ -1,11 +1,11 @@
-from hashlib import sha256, sha384
+from hashlib import sha256
 import random
 
 
 def o(value: int, f: callable, K) -> int:
     value_hash = f(str(value).encode('UTF-8')).hexdigest()
     value_hash_int = int(value_hash, 16)
-    return value_hash_int % K
+    return value_hash_int
 
 
 def generate_public_key(x: list, f: callable, K: int) -> list:
@@ -17,7 +17,7 @@ def generate_public_key(x: list, f: callable, K: int) -> list:
     return y
 
 
-f = sha384
+f = sha256
 n = f("".encode("UTF-8")).digest_size * 8
 K = pow(2, n)
 
