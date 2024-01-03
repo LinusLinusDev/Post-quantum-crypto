@@ -24,7 +24,9 @@ K = pow(2, n)
 M = input("Enter message:")
 h = f(M.encode('UTF-8')).hexdigest()
 h_bin = bin(int(h, 16))[2:]
-if int(h[0], 16) < 4:
+if int(h[0], 16) < 2:
+    h_bin = '000' + h_bin
+elif int(h[0], 16) < 4:
     h_bin = '00' + h_bin
 elif int(h[0], 16) < 8:
     h_bin = '0' + h_bin
