@@ -3,6 +3,7 @@ import galois
 import numpy as np
 import sympy as sp
 
+# different random maps and Vinegar variables for seed = -1, same random maps and Vinegar variables for seed > -1
 seed = -1
 
 if seed >= 0:
@@ -11,6 +12,12 @@ if seed >= 0:
 
 
 class UOV:
+    # o = number of Oil variables
+    # v = number of Vinegar variables
+    # K = modulus of field
+    # n = number of total variables
+    # S = affine map
+    # private = quadratic map with trapdoor
     def __init__(self, o: int, v: int, K: int = 2):
         self.__o = o
         self.__v = v
@@ -32,6 +39,7 @@ class UOV:
         variables = sp.symbols(f"x':{self.__n}", integer=True)
         for x in range(self.__n):
             substitutions[variables[x]] = self.__S[x]
+        # substitute each variable in each row of the quadratic map by the corresponding row of the affine map and then simplify the equations
         for m in range(self.__o):
             equation = self.__private[m].subs(substitutions)
             equation = sp.expand(equation, modulus=self.__K)
@@ -40,6 +48,7 @@ class UOV:
 
     # generate single multivariate quadratic equation with n variables
     def generate_quadratic(self):
+        # matrix stands for the quadratic part, list for the linear part, integer for the constant part
         equation = [np.random.randint(
             self.__K, size=(self.__n, self.__n))] + [np.random.randint(self.__K, size=self.__n)] + [random.randint(0, self.__K - 1)]
 
@@ -59,8 +68,10 @@ class UOV:
         GF = galois.GF(self.__K)
         while True:
             matrix = GF.Random((self.__n, self.__n))
+            # stop generating if invertible map is found
             if np.linalg.det(matrix) != 0:
                 break
+        # generate constants
         vector = np.random.randint(self.__K, size=self.__n)
         return [matrix, vector]
 
@@ -69,7 +80,9 @@ class UOV:
         variables = sp.symbols(f"x':{self.__n}", integer=True)
         private = []
         for _ in range(self.__o):
+            # generate quadratic equation
             equation_matrix = self.generate_quadratic()
+            # transform to sympy expression
             equation = 0
             for i in range(self.__n):
                 for j in range(self.__n):
@@ -88,7 +101,9 @@ class UOV:
     def generate_S(self):
         variables = sp.symbols(f"x:{self.__n}", integer=True)
         S = []
+        # generate linear equations
         equations_matrix = self.generate_linear()
+        # transform to sympy expressions
         for i in range(self.__n):
             equation = 0
             for j in range(self.__n):

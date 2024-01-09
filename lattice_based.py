@@ -41,6 +41,7 @@ def gcd_ext(r0: int, r1: int) -> tuple:
 
 # lower triangular basis using Nemhauser/Wolsey algorithm
 def HNF(A):
+    # perform Nemhauser/Wolsey algorithm as described here (https://kola.opus.hbz-nrw.de/frontdoor/deliver/index/docId/211/file/Studienarbeit_Kerstin_Susewind.pdf) on page 34.
     H = A
     n = H.shape[0]
     U = np.identity(n)
@@ -92,12 +93,14 @@ def HNF(A):
 # generate noise-vector
 def get_errors(A):
     magnitudes = []
+    # compute magnitudes of all columnvectors
     for vector in A.T:
         magnitudes.append(np.linalg.norm(vector))
+    # generate random noise-vector
     error = np.array([random.uniform(-1, 1) for _ in range(np.shape(A)[0])])
+    # scale noise-vector to 30%-50% magnitude of shortest columnvector in basis
     error *= min(magnitudes) * random.uniform(0.3, 0.5) / \
         np.linalg.norm(error)
-    error *= 1 if random.random() < 0.5 else -1
     return error
 
 
