@@ -26,6 +26,7 @@ class UOV:
         self.__Snum = self.generate_Snum()
         self.__Ssym = self.generate_Ssym()
         self.__private = self.generate_private()
+        self.__public = self.generate_public()
 
     def get_S(self):
         return self.__Ssym
@@ -33,8 +34,11 @@ class UOV:
     def get_private(self):
         return self.__private
 
-    # Get composition of affine and quadratic map as public key
     def get_public(self):
+        return self.__public
+
+    # Get composition of affine and quadratic map as public key
+    def generate_public(self):
         public = []
         substitutions = {}
         variables = sp.symbols(f"x':{self.__n}", integer=True)
@@ -46,13 +50,6 @@ class UOV:
             equation = sp.expand(equation, modulus=self.__m)
             public.append(equation)
         return public
-
-    # generate single multivariate quadratic equation with n variables
-    def generate_quadratic(self):
-        # matrix stands for the quadratic part, list for the linear part, integer for the constant part
-        equation = [self.__K.Random((self.__n, self.__n), seed=random.randint(0, 1000))] + [self.__K.Random(
-            self.__n, seed=random.randint(0, 1000))] + [self.__K.Random(seed=random.randint(0, 1000))]
-        return equation
 
     # generate affine map with n variables and equations, has to be invertible over finite field K
     def generate_Snum(self):
@@ -71,8 +68,9 @@ class UOV:
         variables = sp.symbols(f"x':{self.__n}", integer=True)
         private = []
         for _ in range(self.__o):
-            # generate quadratic equation
-            equation_matrix = self.generate_quadratic()
+            # matrix stands for the quadratic part, list for the linear part, integer for the constant part
+            equation_matrix = [self.__K.Random((self.__n, self.__n), seed=random.randint(0, 1000))] + [self.__K.Random(
+                self.__n, seed=random.randint(0, 1000))] + [self.__K.Random(seed=random.randint(0, 1000))]
             # transform to sympy expression
             equation = 0
             # skip lower triangle of matrix since its redundant
