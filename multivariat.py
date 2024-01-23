@@ -87,7 +87,7 @@ class UOV:
             private.append(equation)
         return private
 
-    # generate affine map and create sympy expression
+    # create sympy expression using affine Map Snum
     def generate_Ssym(self):
         variables = sp.symbols(f"x:{self.__n}", integer=True)
         S = []
