@@ -8,7 +8,6 @@ seed = -1
 
 if seed >= 0:
     random.seed(seed)
-    np.random.seed(seed)
 
 
 class UOV:
@@ -24,12 +23,12 @@ class UOV:
         self.__n = o + v
         self.__m = m
         self.__K = galois.GF(m)
-        self.__S_array = self.generate_linear()
-        self.__S = self.generate_S()
+        self.__Snum = self.generate_Snum()
+        self.__Ssym = self.generate_Ssym()
         self.__private = self.generate_private()
 
     def get_S(self):
-        return self.__S
+        return self.__Ssym
 
     def get_private(self):
         return self.__private
@@ -40,7 +39,7 @@ class UOV:
         substitutions = {}
         variables = sp.symbols(f"x':{self.__n}", integer=True)
         for x in range(self.__n):
-            substitutions[variables[x]] = self.__S[x]
+            substitutions[variables[x]] = self.__Ssym[x]
         # substitute each variable in each row of the quadratic map by the corresponding row of the affine map and then simplify the equations
         for m in range(self.__o):
             equation = self.__private[m].subs(substitutions)
@@ -51,27 +50,20 @@ class UOV:
     # generate single multivariate quadratic equation with n variables
     def generate_quadratic(self):
         # matrix stands for the quadratic part, list for the linear part, integer for the constant part
-        equation = [self.__K.Random((self.__n, self.__n),seed=random.randint(0,1000))] + [self.__K.Random(self.__n,seed=random.randint(0,1000))] + [self.__K.Random(seed=random.randint(0,1000))]
-
-        # lower triangle not required since multiplication is commutative
-        for i in range(1, self.__n):
-            for j in range(i):
-                equation[0][i, j] = 0
-
-        # no summands containing more than one oil-variable as factor
-        for i in range(self.__o):
-            for j in range(i, self.__o):
-                equation[0][i, j] = 0
+        equation = [self.__K.Random((self.__n, self.__n), seed=random.randint(0, 1000))] + [self.__K.Random(
+            self.__n, seed=random.randint(0, 1000))] + [self.__K.Random(seed=random.randint(0, 1000))]
         return equation
 
     # generate affine map with n variables and equations, has to be invertible over finite field K
-    def generate_linear(self):
+    def generate_Snum(self):
         # generate invertible matrix
-        matrix = self.__K.Random((self.__n, self.__n),seed=random.randint(0,1000))
+        matrix = self.__K.Random((self.__n, self.__n),
+                                 seed=random.randint(0, 1000))
         while np.linalg.det(matrix) == 0:
-            matrix = self.__K.Random((self.__n, self.__n),seed=random.randint(0,1000))
+            matrix = self.__K.Random(
+                (self.__n, self.__n), seed=random.randint(0, 1000))
         # generate constants
-        vector = self.__K.Random(self.__n,seed=random.randint(0,1000))
+        vector = self.__K.Random(self.__n, seed=random.randint(0, 1000))
         return [matrix, vector]
 
     # generate o quadratic equations with n variables and create sympy expressions
@@ -83,40 +75,38 @@ class UOV:
             equation_matrix = self.generate_quadratic()
             # transform to sympy expression
             equation = 0
+            # skip lower triangle of matrix since its redundant
+            # also skip first o x o Part of matrix, since products with more than one oil-factor are not allowed
             for i in range(self.__n):
-                for j in range(self.__n):
-                    if equation_matrix[0][i, j] > 0:
-                        equation += int(equation_matrix[0][i,j])*variables[i]*variables[j]
+                for j in range(max(self.__o, i), self.__n):
+                    equation += int(equation_matrix[0]
+                                    [i, j])*variables[i]*variables[j]
             for i in range(self.__n):
-                if equation_matrix[1][i] > 0:
-                    equation += int(equation_matrix[1][i])*variables[i]
-            if equation_matrix[2] > 0:
-                equation += equation_matrix[2]
+                equation += int(equation_matrix[1][i])*variables[i]
+            equation += equation_matrix[2]
             private.append(equation)
         return private
 
     # generate affine map and create sympy expression
-    def generate_S(self):
+    def generate_Ssym(self):
         variables = sp.symbols(f"x:{self.__n}", integer=True)
         S = []
         # transform to sympy expressions
         for i in range(self.__n):
             equation = 0
             for j in range(self.__n):
-                equation += int(self.__S_array[0][i, j])*variables[j]
-            equation += self.__S_array[1][i]
+                equation += int(self.__Snum[0][i, j])*variables[j]
+            equation += self.__Snum[1][i]
             S.append(equation)
         return S
 
     # sign list of o integers mod K
     def sign(self, Y: list):
-        GF = galois.GF(self.__m)
-        A = GF.Zeros((self.__o, self.__o))
-        b = GF.Zeros(self.__o)
+        A = self.__K.Zeros((self.__o, self.__o))
+        b = self.__K.Zeros(self.__o)
 
         v_variables = sp.symbols(f"x'{self.__o}:{self.__n}", integer=True)
         o_variables = sp.symbols(f"x':{self.__o}", integer=True)
-        variables = sp.symbols(f"x:{self.__n}", integer=True)
 
         substitutions = {}
         failures = 0
@@ -124,7 +114,7 @@ class UOV:
         # inverting quadratic map
         while True:
             # set vinegar variables randomly and substitute them in private system
-            vinegar = self.__K.Random(self.__v,seed=random.randint(0,1000))
+            vinegar = self.__K.Random(self.__v, seed=random.randint(0, 1000))
             for i in range(self.__v):
                 substitutions[v_variables[i]] = vinegar[i]
             equations = []
@@ -161,16 +151,7 @@ class UOV:
         y_new = np.concatenate([x, vinegar])
 
         # invert affine map over finite field
-        A = GF.Zeros((self.__n, self.__n))
-        b = GF.Zeros(self.__n)
-        equations_x, equations_y = sp.linear_eq_to_matrix(
-            self.__S, variables)
-        for i in range(self.__n):
-            for j in range(self.__n):
-                A[i, j] = int(equations_x[i, j])
-            b[i] = (int(equations_y[i]) + int(y_new[i])) % self.__m
-
-        return np.linalg.solve(A, b)
+        return np.linalg.solve(self.__Snum[0], y_new - self.__Snum[1])
 
 
 X = UOV(2, 2)
