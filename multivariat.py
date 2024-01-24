@@ -151,19 +151,19 @@ class UOV:
         # invert affine map over finite field
         return np.linalg.solve(self.__Snum[0], y_new - self.__Snum[1])
 
+    # verify signature
     def verify(self, X, Y):
         message = []
         substitutions = {}
         variables = sp.symbols(f"x:{self.__n}", integer=True)
 
+        # substitute variables with values of the signature and simplify the equations over finite field
         for x in range(self.__n):
             substitutions[variables[x]] = X[x]
-
         for m in range(self.__o):
             equation = self.__public[m].subs(substitutions)
             equation = sp.expand(equation, modulus=self.__m)
             message.append(equation)
-
         return message == Y
 
 
