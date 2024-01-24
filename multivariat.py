@@ -151,9 +151,24 @@ class UOV:
         # invert affine map over finite field
         return np.linalg.solve(self.__Snum[0], y_new - self.__Snum[1])
 
+    def verify(self, X, Y):
+        message = []
+        substitutions = {}
+        variables = sp.symbols(f"x:{self.__n}", integer=True)
 
-X = UOV(2, 2)
-document = [1, 0]
+        for x in range(self.__n):
+            substitutions[variables[x]] = X[x]
+
+        for m in range(self.__o):
+            equation = self.__public[m].subs(substitutions)
+            equation = sp.expand(equation, modulus=self.__m)
+            message.append(equation)
+
+        return message == Y
+
+
+X = UOV(4, 4)
+document = [1, 0, 0, 1]
 
 print(f"Private system: {X.get_private()}")
 print()
@@ -162,4 +177,12 @@ print()
 print(f"Public system: {X.get_public()}")
 print()
 print(f"Document: {document}")
-print(f"Signature: {X.sign(document)}")
+
+signature = X.sign(document)
+
+print(f"Signature: {signature}")
+
+if X.verify(signature, document):
+    print("The verification was successful.")
+else:
+    print("The verification was not successful.")
