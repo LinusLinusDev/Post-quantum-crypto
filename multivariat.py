@@ -13,10 +13,13 @@ if seed >= 0:
 class UOV:
     # o = number of Oil variables
     # v = number of Vinegar variables
-    # K = modulus of field
     # n = number of total variables
-    # S = affine map
-    # private = quadratic map with trapdoor
+    # m = modulus of finite field
+    # K = finite field
+    # Snum = affine map as NumPy-Arrays
+    # Ssym = affine map as SymPy-Expressions
+    # private = quadratic map with trapdoor as SymPy-Expressions
+    # public = composition of affine and quadratic map SymPy-Expressions
     def __init__(self, o: int, v: int, m: int = 2):
         self.__o = o
         self.__v = v
@@ -177,10 +180,12 @@ print()
 print(f"Public system: {X.get_public()}")
 print()
 print(f"Document: {document}")
+print()
 
 signature = X.sign(document)
 
 print(f"Signature: {signature}")
+print()
 
 if X.verify(signature, document):
     print("The verification was successful.")
