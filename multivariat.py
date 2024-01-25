@@ -23,19 +23,13 @@ class UOV:
     def __init__(self, o: int, v: int, m: int = 2):
         self.__o = o
         self.__v = v
-        self.__n = o + v
+        self.__n = self.__o + self.__v
         self.__m = m
-        self.__K = galois.GF(m)
+        self.__K = galois.GF(self.__m)
         self.__Snum = self.generate_Snum()
         self.__Ssym = self.generate_Ssym()
         self.__private = self.generate_private()
         self.__public = self.generate_public()
-
-    def get_S(self):
-        return self.__Ssym
-
-    def get_private(self):
-        return self.__private
 
     def get_public(self):
         return self.__public
@@ -173,10 +167,6 @@ class UOV:
 X = UOV(4, 4)
 document = [1, 0, 0, 1]
 
-print(f"Private system: {X.get_private()}")
-print()
-print(f"Private map S: {X.get_S()}")
-print()
 print(f"Public system: {X.get_public()}")
 print()
 print(f"Document: {document}")

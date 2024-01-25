@@ -55,9 +55,6 @@ class Lamport:
             y.append(y_tuple)
         return y
 
-    def get_private(self):
-        return self.__private
-
     def get_public(self):
         return self.__public
 
@@ -90,8 +87,6 @@ class Lamport:
 X = Lamport(sha256)
 document = "Hello World!"
 
-print(f"Private key: {X.get_private()}")
-print()
 print(f"Public key: {X.get_public()}")
 print()
 print(f"Document: {document}")

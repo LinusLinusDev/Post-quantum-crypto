@@ -3,7 +3,14 @@ import sympy as sp
 import random
 import math
 
+# print readable values
 np.set_printoptions(suppress=True)
+
+# different random errors for seed = -1, same random errors for seed > -1
+seed = -1
+
+if seed >= 0:
+    random.seed(seed)
 
 
 # check if columnvectors in basis are linear independent
@@ -118,14 +125,20 @@ def recover_v(c, B):
     return recovered_v
 
 
-# "good" lattice basis as private key
-
 # since this one is hard-coded, you have to edit it here if you want to try another one
 # it has to be quadratic and the columnvectors should be linear independent
 B = np.array([[4, -2, 1, 0],
               [0, -1, 5, 2],
               [-1, 6, 1, -1],
               [0, 1, -1, 6]])
+
+
+class GHH:
+    # B = "good" lattice basis as private key
+    def __init__(self, B):
+        self.__B = B
+        self.__n = self.__B.shape[0]
+
 
 if linear_independence(B) == 0:
     print("The columnvectors of the basis B are not linear independent.")
