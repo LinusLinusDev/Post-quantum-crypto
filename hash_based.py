@@ -74,10 +74,13 @@ class Lamport:
     def verify(self, S, M):
         verify = True
         M_bin = self.f(M)
+        V = []
+        for s in S:
+            V.append(self.g(s))
 
         # compare hashed values of signature with values of public key
         for index in range(len(M_bin)):
-            if self.g(S[index]) != self.__public[index][int(M_bin[index])]:
+            if V[index] != self.__public[index][int(M_bin[index])]:
                 verify = False
                 break
 
