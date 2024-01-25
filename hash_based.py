@@ -71,7 +71,7 @@ class Lamport:
 
         return signature
 
-    def verify(self, S, M):
+    def verify(self, S, M, pk):
         verify = True
         M_bin = self.f(M)
         V = []
@@ -80,7 +80,7 @@ class Lamport:
 
         # compare hashed values of signature with values of public key
         for index in range(len(M_bin)):
-            if V[index] != self.__public[index][int(M_bin[index])]:
+            if V[index] != pk[index][int(M_bin[index])]:
                 verify = False
                 break
 
@@ -102,7 +102,7 @@ signature = X.sign(document)
 print(f"Signature: {signature}")
 print()
 
-if X.verify(signature, document):
+if X.verify(signature, document, X.get_public()):
     print("The verification was successful.")
 else:
     print("The verification was not successful.")

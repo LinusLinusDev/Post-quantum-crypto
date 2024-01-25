@@ -155,19 +155,19 @@ class UOV:
         return np.linalg.solve(self.__Snum[0], y_new - self.__Snum[1])
 
     # verify signature
-    def verify(self, X, Y):
+    def verify(self, S, M, pk):
         message = []
         substitutions = {}
         variables = sp.symbols(f"x:{self.__n}", integer=True)
 
         # substitute variables with values of the signature and simplify the equations over finite field
         for x in range(self.__n):
-            substitutions[variables[x]] = X[x]
+            substitutions[variables[x]] = S[x]
         for m in range(self.__o):
-            equation = self.__public[m].subs(substitutions)
+            equation = pk[m].subs(substitutions)
             equation = sp.expand(equation, modulus=self.__m)
             message.append(equation)
-        return message == Y
+        return message == M
 
 
 X = UOV(4, 4)
@@ -187,7 +187,7 @@ signature = X.sign(document)
 print(f"Signature: {signature}")
 print()
 
-if X.verify(signature, document):
+if X.verify(signature, document, X.get_public()):
     print("The verification was successful.")
 else:
     print("The verification was not successful.")
