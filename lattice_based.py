@@ -13,23 +13,22 @@ if seed >= 0:
     random.seed(seed)
 
 
-# check if columnvectors in basis are linear independent
-def linear_independence(matrix):
-    _, inds = sp.Matrix(matrix).rref()
-    if len(inds) == np.shape(matrix)[0]:
-        return 1
-    else:
-        return 0
-
-
 class GHH:
     # B = "good" lattice basis as private key
     # n = dimension of the lattice
     # H = "bad" lattice basis as public key using the Hermite Normal Form of the private key
     def __init__(self, B):
+        self.linear_independence(B)
         self.__B = B
         self.__n = self.__B.shape[0]
         self.__H = self.HNF()[0]
+
+    # check if columnvectors in basis are linearly independent
+    def linear_independence(self, matrix):
+        _, inds = sp.Matrix(matrix).rref()
+        if len(inds) != np.shape(matrix)[0]:
+            raise Exception(
+                "The columnvectors of the basis B have to be linearly independent.")
 
     def get_public(self):
         return self.__H
@@ -158,32 +157,32 @@ base = np.array([[4, -2, 1, 0],
                  [-1, 6, 1, -1],
                  [0, 1, -1, 6]])
 
-if linear_independence(base) == 0:
-    print("The columnvectors of the basis B are not linear independent.")
-else:
-    X = GHH(base)
+base2 = np.array([[0, -2],
+                 [0, -1]])
 
-    message = np.array([3, 5, 7, 9])
+X = GHH(base2)
 
-    print(f"Public key:")
-    print(X.get_public())
-    print()
+message = np.array([3, 5, 7, 9])
 
-    print(f"Message: {message}")
-    print()
+print(f"Public key:")
+print(X.get_public())
+print()
 
-    encrypted_message = X.encrypt(message, X.get_public())
+print(f"Message: {message}")
+print()
 
-    print(f"Encrypted message: {encrypted_message}")
-    print()
+encrypted_message = X.encrypt(message, X.get_public())
 
-    recovered_message = X.decrypt(encrypted_message)
+print(f"Encrypted message: {encrypted_message}")
+print()
 
-    print(f"Recovered message: {recovered_message}")
-    print()
+recovered_message = X.decrypt(encrypted_message)
 
-    recovered_message_public = X.decrypt_with_H(encrypted_message)
+print(f"Recovered message: {recovered_message}")
+print()
 
-    print(
-        f"Recovered message using public key instead of private key: {recovered_message_public}")
-    print()
+recovered_message_public = X.decrypt_with_H(encrypted_message)
+
+print(
+    f"Recovered message using public key instead of private key: {recovered_message_public}")
+print()
