@@ -4,7 +4,7 @@ import numpy as np
 import sympy as sp
 
 # different random maps and Vinegar variables for seed = -1, same random maps and Vinegar variables for seed > -1
-seed = -1
+seed = 6
 
 if seed >= 0:
     random.seed(seed)
@@ -16,40 +16,76 @@ class UOV:
     # n = number of total variables
     # m = modulus of finite field
     # K = finite field
-    # Snum = affine map as NumPy-Arrays
-    # Ssym = affine map as SymPy-Expressions
-    # private = quadratic map with trapdoor as SymPy-Expressions
-    # public = composition of affine and quadratic map SymPy-Expressions
-    def __init__(self, o: int, v: int, m: int = 2):
+    # S = affine map
+    # private = quadratic map with trapdoor
+    # public = composition of affine and quadratic map
+    def __init__(self, o: int, v: int, m: int):
         self.__o = o
         self.__v = v
         self.__n = self.__o + self.__v
         self.__m = m
         self.__K = galois.GF(self.__m)
-        self.__Snum = self.generate_Snum()
-        self.__Ssym = self.generate_Ssym()
+        self.__S = self.generate_S()
         self.__private = self.generate_private()
         self.__public = self.generate_public()
 
     def get_public(self):
         return self.__public
 
+    def get_private(self):
+        return self.__private
+
+    def get_S(self):
+        return self.__S
+
+    def to_sympy(self, A, quadratic: bool):
+        variables = sp.symbols(f"x:{self.__n}", integer=True)
+        sym = []
+        if quadratic:
+            for o in range(self.__o):
+                equation = 0
+                for i in range(self.__n):
+                    for j in range(self.__n):
+                        equation += int(A[o][0]
+                                        [i, j])*variables[i]*variables[j]
+                for i in range(self.__n):
+                    equation += int(A[o][1][i])*variables[i]
+                equation += A[o][2]
+                sym.append(equation)
+        else:
+            for i in range(self.__n):
+                equation = 0
+                for j in range(self.__n):
+                    equation += int(A[0][i, j])*variables[j]
+                equation += A[1][i]
+                sym.append(equation)
+        return sym
+
     # Get composition of affine and quadratic map as public key
     def generate_public(self):
+        S = self.__S[0]
+        r = self.__S[1]
         public = []
-        substitutions = {}
-        variables = sp.symbols(f"x':{self.__n}", integer=True)
-        for x in range(self.__n):
-            substitutions[variables[x]] = self.__Ssym[x]
-        # substitute each variable in each row of the quadratic map by the corresponding row of the affine map and then simplify the equations
-        for m in range(self.__o):
-            equation = self.__private[m].subs(substitutions)
-            equation = sp.expand(equation, modulus=self.__m)
+
+        for i in range(self.__o):
+            # calculate composition
+            A = self.__private[i][0]
+            b = self.__private[i][1]
+            c = self.__private[i][2]
+            equation = [S.transpose().dot(A).dot(S), (r.transpose().dot(A.transpose(
+            )+A)+b.transpose()).dot(S), (r.transpose().dot(A)+b.transpose()).dot(r)+c]
             public.append(equation)
+
+            # summarize quadratic coefficients in upper triangle
+            for j in range(self.__n):
+                for k in range(j + 1, self.__n):
+                    equation[0][j, k] = equation[0][j, k] + equation[0][k, j]
+                    equation[0][k, j] = 0
+
         return public
 
     # generate affine map with n variables and equations, has to be invertible over finite field K
-    def generate_Snum(self):
+    def generate_S(self):
         # generate invertible matrix
         matrix = self.__K.Random((self.__n, self.__n),
                                  seed=random.randint(0, 1000))
@@ -60,78 +96,53 @@ class UOV:
         vector = self.__K.Random(self.__n, seed=random.randint(0, 1000))
         return [matrix, vector]
 
-    # generate o quadratic equations with n variables and create sympy expressions
+    # generate o quadratic equations with n variables
     def generate_private(self):
-        variables = sp.symbols(f"x':{self.__n}", integer=True)
         private = []
         for _ in range(self.__o):
             # matrix stands for the quadratic part, list for the linear part, integer for the constant part
-            equation_matrix = [self.__K.Random((self.__n, self.__n), seed=random.randint(0, 1000))] + [self.__K.Random(
+            equation = [self.__K.Random((self.__n, self.__n), seed=random.randint(0, 1000))] + [self.__K.Random(
                 self.__n, seed=random.randint(0, 1000))] + [self.__K.Random(seed=random.randint(0, 1000))]
-            # transform to sympy expression
-            equation = 0
-            # skip lower triangle of matrix since its redundant
-            # also skip first o x o Part of matrix, since products with more than one oil-factor are not allowed
+
+            # set upper left o x o Part of matrix to 0, since products with more than one oil-factor are not allowed
             for i in range(self.__n):
-                for j in range(max(self.__o, i), self.__n):
-                    equation += int(equation_matrix[0]
-                                    [i, j])*variables[i]*variables[j]
-            for i in range(self.__n):
-                equation += int(equation_matrix[1][i])*variables[i]
-            equation += equation_matrix[2]
+                for j in range(max(self.__o, i)):
+                    equation[0][i, j] = 0
             private.append(equation)
         return private
 
-    # create sympy expression using affine Map Snum
-    def generate_Ssym(self):
-        variables = sp.symbols(f"x:{self.__n}", integer=True)
-        S = []
-        # transform to sympy expressions
-        for i in range(self.__n):
-            equation = 0
-            for j in range(self.__n):
-                equation += int(self.__Snum[0][i, j])*variables[j]
-            equation += self.__Snum[1][i]
-            S.append(equation)
-        return S
-
     # sign list of o integers mod K
     def sign(self, Y: list):
-        A = self.__K.Zeros((self.__o, self.__o))
-        b = self.__K.Zeros(self.__o)
-
-        v_variables = sp.symbols(f"x'{self.__o}:{self.__n}", integer=True)
-        o_variables = sp.symbols(f"x':{self.__o}", integer=True)
-
-        substitutions = {}
         failures = 0
 
         # inverting quadratic map
         while True:
             # set vinegar variables randomly and substitute them in private system
-            vinegar = self.__K.Random(self.__v, seed=random.randint(0, 1000))
-            for i in range(self.__v):
-                substitutions[v_variables[i]] = vinegar[i]
-            equations = []
+            v = self.__K.Random(self.__v, seed=random.randint(0, 1000))
 
-            for m in range(self.__o):
-                equation = self.__private[m].subs(substitutions)
-                equation = sp.expand(equation, modulus=self.__m)
-                equations.append(equation)
-
-            # cast linear system to GF matrices to solve them over finite field K
-            equations_x, equations_y = sp.linear_eq_to_matrix(
-                equations, o_variables)
+            linear = []
+            constant = []
 
             for i in range(self.__o):
-                for j in range(self.__o):
-                    A[i, j] = int(equations_x[i, j])
-                # add values from Y
-                b[i] = (int(equations_y[i]) + Y[i]) % self.__m
+                A_1 = self.__private[i][0][np.ix_(
+                    range(self.__o), range(self.__o, self.__n))]
+                A_2 = self.__private[i][0][np.ix_(
+                    range(self.__o, self.__n), range(self.__o, self.__n))]
+                b_1 = self.__private[i][1][np.ix_(range(self.__o))]
+                b_2 = self.__private[i][1][np.ix_(range(self.__o, self.__n))]
+                c = self.__private[i][2]
+
+                linear.append(v.transpose().dot(
+                    A_1.transpose())+b_1.transpose())
+                constant.append(
+                    (v.transpose().dot(A_2)+b_2.transpose()).dot(v)+c)
+
+            linear_all = self.__K(linear)
+            constant_all = self.__K(constant)
 
             # try to solve system, if not possible set different vinegar variables
             try:
-                x = np.linalg.solve(A, b)
+                x = np.linalg.solve(linear_all, self.__K(Y) - constant_all)
                 break
             except:
                 failures += 1
@@ -143,32 +154,37 @@ class UOV:
                 continue
 
         # safe results and vinegar variables as total result of inverted quadratic system
-        y_new = np.concatenate([x, vinegar])
+        y_new = np.concatenate([x, v])
 
         # invert affine map over finite field
-        return np.linalg.solve(self.__Snum[0], y_new - self.__Snum[1])
+        return np.linalg.solve(self.__S[0], y_new - self.__S[1])
 
     # verify signature
-    def verify(self, S, M, pk):
+    def verify(self, signature, M, pk):
         message = []
-        substitutions = {}
-        variables = sp.symbols(f"x:{self.__n}", integer=True)
 
-        # substitute variables with values of the signature and simplify the equations over finite field
-        for x in range(self.__n):
-            substitutions[variables[x]] = S[x]
-        for m in range(self.__o):
-            equation = pk[m].subs(substitutions)
-            equation = sp.expand(equation, modulus=self.__m)
-            message.append(equation)
+        for i in range(len(pk)):
+            A = pk[i][0]
+            b = pk[i][1]
+            c = pk[i][2]
+            message.append(signature.transpose().dot(A).dot(
+                signature)+b.transpose().dot(signature)+c)
+
         return message == M
 
 
-X = UOV(4, 4)
-document = [1, 0, 0, 1]
+X = UOV(8, 8, 19)
 
-print(f"Public system: {X.get_public()}")
 print()
+print(f"Public system: {X.to_sympy(X.get_public(),True)}")
+print()
+print(f"Private systen: {X.to_sympy(X.get_private(),True)}")
+print()
+print(f"S: {X.to_sympy(X.get_S(),False)}")
+print()
+
+document = [1, 0, 1, 1, 1, 1, 1, 1]
+
 print(f"Document: {document}")
 print()
 
