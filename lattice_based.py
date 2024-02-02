@@ -3,9 +3,6 @@ import sympy as sp
 import random
 import math
 
-# print readable values
-np.set_printoptions(suppress=True)
-
 # different random errors for seed = -1, same random errors for seed > -1
 seed = -1
 
@@ -16,11 +13,13 @@ if seed >= 0:
 class GHH:
     # B = "good" lattice basis as private key
     # n = dimension of the lattice
+    # p = max absolute value of components of error
     # H = "bad" lattice basis as public key using the Hermite Normal Form of the private key
-    def __init__(self, B):
+    def __init__(self, B, p: int):
         self.linear_independence(B)
         self.__B = B
         self.__n = self.__B.shape[0]
+        self.__p = p
         self.__H = self.HNF()[0]
 
     # check if columnvectors in basis are linearly independent
@@ -32,6 +31,9 @@ class GHH:
 
     def get_public(self):
         return self.__H
+
+    def get_p(self):
+        return self.__p
 
     # extended euclidian algorithm
     def gcd_ext(self, r0: int, r1: int) -> tuple:
@@ -106,13 +108,13 @@ class GHH:
                 if j < i - 1:
                     j = j + 1
 
-    def encrypt(self, x, pk):
+    def encrypt(self, x, pk, p):
         # map message to latticepoint
         m = pk.dot(x)
 
         # generate random noise vector with magnitude 2
-        e = np.array([random.uniform(-1, 1) for _ in range(self.__n)])
-        e *= 2 / np.linalg.norm(e)
+        e = np.array([random.randint(-p, p)
+                     for _ in range(self.__n)])
 
         # encrypt by adding noise vector to lattice point
         c = m + e
@@ -155,14 +157,11 @@ class GHH:
 base = np.array([[4, -2, 1, 0],
                  [0, -1, 5, 2],
                  [-1, 6, 1, -1],
-                 [0, 1, -1, 6]])
+                 [0, 1, -1, 6]], )
 
-base2 = np.array([[0, -2],
-                 [0, -1]])
+X = GHH(base, 1)
 
-X = GHH(base2)
-
-message = np.array([3, 5, 7, 9])
+message = np.array([3, -5, 6, -12])
 
 print(f"Public key:")
 print(X.get_public())
@@ -171,7 +170,7 @@ print()
 print(f"Message: {message}")
 print()
 
-encrypted_message = X.encrypt(message, X.get_public())
+encrypted_message = X.encrypt(message, X.get_public(), X.get_p())
 
 print(f"Encrypted message: {encrypted_message}")
 print()
