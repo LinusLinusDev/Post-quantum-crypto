@@ -6,7 +6,7 @@
 
 ---
 
-Implementation of the GHH-Cryptosystem using the HNF as public key.
+Implementation of the GGH-Cryptosystem using the HNF as public key.
 
 ---
 

@@ -10,7 +10,7 @@ if seed >= 0:
     random.seed(seed)
 
 
-class GHH:
+class GGH:
     # B = "good" lattice basis as private key
     # n = dimension of the lattice
     # p = max absolute value of components of error
@@ -159,7 +159,7 @@ base = np.array([[4, -2, 1, 0],
                  [-1, 6, 1, -1],
                  [0, 1, -1, 6]], )
 
-X = GHH(base, 1)
+X = GGH(base, 1)
 
 message = np.array([3, -5, 6, -12])
 
