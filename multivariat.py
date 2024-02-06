@@ -3,11 +3,8 @@ import galois
 import numpy as np
 import sympy as sp
 
-# different random maps and Vinegar variables for seed = -1, same random maps and Vinegar variables for seed > -1
 seed = 6
-
-if seed >= 0:
-    random.seed(seed)
+random.seed(seed)
 
 
 class UOV:
@@ -19,12 +16,12 @@ class UOV:
     # S = affine map
     # private = quadratic map with trapdoor
     # public = composition of affine and quadratic map
-    def __init__(self, o: int, v: int, m: int):
+    def __init__(self, o: int, v: int, p: int):
         self.__o = o
         self.__v = v
         self.__n = self.__o + self.__v
-        self.__m = m
-        self.__K = galois.GF(self.__m)
+        self.__p = p
+        self.__K = galois.GF(self.__p)
         self.__S = self.generate_S()
         self.__private = self.generate_private()
         self.__public = self.generate_public()
@@ -32,13 +29,7 @@ class UOV:
     def get_public(self):
         return self.__public
 
-    def get_private(self):
-        return self.__private
-
-    def get_S(self):
-        return self.__S
-
-    def to_sympy(self, A, quadratic: bool):
+    def to_sympy(self, system, quadratic: bool):
         variables = sp.symbols(f"x:{self.__n}", integer=True)
         sym = []
         if quadratic:
@@ -46,25 +37,25 @@ class UOV:
                 equation = 0
                 for i in range(self.__n):
                     for j in range(self.__n):
-                        equation += int(A[o][0]
+                        equation += int(system[o][0]
                                         [i, j])*variables[i]*variables[j]
                 for i in range(self.__n):
-                    equation += int(A[o][1][i])*variables[i]
-                equation += A[o][2]
+                    equation += int(system[o][1][i])*variables[i]
+                equation += system[o][2]
                 sym.append(equation)
         else:
             for i in range(self.__n):
                 equation = 0
                 for j in range(self.__n):
-                    equation += int(A[0][i, j])*variables[j]
-                equation += A[1][i]
+                    equation += int(system[0][i, j])*variables[j]
+                equation += system[1][i]
                 sym.append(equation)
         return sym
 
     # Get composition of affine and quadratic map as public key
     def generate_public(self):
-        S = self.__S[0]
-        r = self.__S[1]
+        D = self.__S[0]
+        e = self.__S[1]
         public = []
 
         for i in range(self.__o):
@@ -72,43 +63,47 @@ class UOV:
             A = self.__private[i][0]
             b = self.__private[i][1]
             c = self.__private[i][2]
-            equation = [S.transpose().dot(A).dot(S), (r.transpose().dot(A.transpose(
-            )+A)+b.transpose()).dot(S), (r.transpose().dot(A)+b.transpose()).dot(r)+c]
-            public.append(equation)
+            function = [D.transpose().dot(A).dot(D),
+                        (e.transpose().dot(A.transpose()+A)+b.transpose()).dot(D),
+                        (e.transpose().dot(A)+b.transpose()).dot(e)+c]
 
             # summarize quadratic coefficients in upper triangle
             for j in range(self.__n):
                 for k in range(j + 1, self.__n):
-                    equation[0][j, k] = equation[0][j, k] + equation[0][k, j]
-                    equation[0][k, j] = 0
+                    function[0][j, k] = function[0][j, k] + function[0][k, j]
+                    function[0][k, j] = 0
+
+            public.append(function)
 
         return public
 
     # generate affine map with n variables and equations, has to be invertible over finite field K
     def generate_S(self):
         # generate invertible matrix
-        matrix = self.__K.Random((self.__n, self.__n),
-                                 seed=random.randint(0, 1000))
-        while np.linalg.det(matrix) == 0:
-            matrix = self.__K.Random(
-                (self.__n, self.__n), seed=random.randint(0, 1000))
+        D = self.__K.Random((self.__n, self.__n),
+                            seed=random.randint(0, 1000))
         # generate constants
-        vector = self.__K.Random(self.__n, seed=random.randint(0, 1000))
-        return [matrix, vector]
+        e = self.__K.Random(self.__n, seed=random.randint(0, 1000))
+
+        while np.linalg.det(D) == 0:
+            D = self.__K.Random(
+                (self.__n, self.__n), seed=random.randint(0, 1000))
+
+        return [D, e]
 
     # generate o quadratic equations with n variables
     def generate_private(self):
         private = []
         for _ in range(self.__o):
             # matrix stands for the quadratic part, list for the linear part, integer for the constant part
-            equation = [self.__K.Random((self.__n, self.__n), seed=random.randint(0, 1000))] + [self.__K.Random(
+            function = [self.__K.Random((self.__n, self.__n), seed=random.randint(0, 1000))] + [self.__K.Random(
                 self.__n, seed=random.randint(0, 1000))] + [self.__K.Random(seed=random.randint(0, 1000))]
 
             # set upper left o x o Part of matrix to 0, since products with more than one oil-factor are not allowed
             for i in range(self.__n):
                 for j in range(max(self.__o, i)):
-                    equation[0][i, j] = 0
-            private.append(equation)
+                    function[0][i, j] = 0
+            private.append(function)
         return private
 
     # sign list of o integers mod K
@@ -118,31 +113,30 @@ class UOV:
         # inverting quadratic map
         while True:
             # set vinegar variables randomly and substitute them in private system
-            v = self.__K.Random(self.__v, seed=random.randint(0, 1000))
+            x_v = self.__K.Random(self.__v, seed=random.randint(0, 1000))
 
             linear = []
             constant = []
 
             for i in range(self.__o):
-                A_1 = self.__private[i][0][np.ix_(
+                M = self.__private[i][0][np.ix_(
                     range(self.__o), range(self.__o, self.__n))]
-                A_2 = self.__private[i][0][np.ix_(
+                N = self.__private[i][0][np.ix_(
                     range(self.__o, self.__n), range(self.__o, self.__n))]
-                b_1 = self.__private[i][1][np.ix_(range(self.__o))]
-                b_2 = self.__private[i][1][np.ix_(range(self.__o, self.__n))]
+                m = self.__private[i][1][np.ix_(range(self.__o))]
+                n = self.__private[i][1][np.ix_(range(self.__o, self.__n))]
                 c = self.__private[i][2]
 
-                linear.append(v.transpose().dot(
-                    A_1.transpose())+b_1.transpose())
+                linear.append(x_v.transpose().dot(M.transpose())+m.transpose())
                 constant.append(
-                    (v.transpose().dot(A_2)+b_2.transpose()).dot(v)+c)
+                    (x_v.transpose().dot(N)+n.transpose()).dot(x_v)+c)
 
             linear_all = self.__K(linear)
             constant_all = self.__K(constant)
 
             # try to solve system, if not possible set different vinegar variables
             try:
-                x = np.linalg.solve(linear_all, self.__K(Y) - constant_all)
+                x_o = np.linalg.solve(linear_all, self.__K(Y) - constant_all)
                 break
             except:
                 failures += 1
@@ -154,26 +148,26 @@ class UOV:
                 continue
 
         # safe results and vinegar variables as total result of inverted quadratic system
-        y_new = np.concatenate([x, v])
+        y_new = np.concatenate([x_o, x_v])
 
         # invert affine map over finite field
         return np.linalg.solve(self.__S[0], y_new - self.__S[1])
 
     # verify signature
-    def verify(self, signature, M, pk):
-        message = []
+    def verify(self, signature, message, pk):
+        result = []
 
         for i in range(len(pk)):
             A = pk[i][0]
             b = pk[i][1]
             c = pk[i][2]
-            message.append(signature.transpose().dot(A).dot(
+            result.append(signature.transpose().dot(A).dot(
                 signature)+b.transpose().dot(signature)+c)
 
-        return message == M
+        return result == message
 
 
-X = UOV(8, 8, 19)
+X = UOV(4, 4, 2)
 
 print()
 print(f"Public system: {X.to_sympy(X.get_public(),True)}")
@@ -183,7 +177,7 @@ print()
 print(f"S: {X.to_sympy(X.get_S(),False)}")
 print()
 
-document = [1, 0, 1, 1, 1, 1, 1, 1]
+document = [1, 0, 1, 1]
 
 print(f"Document: {document}")
 print()
