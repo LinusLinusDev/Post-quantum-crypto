@@ -29,27 +29,33 @@ class UOV:
     def get_public(self):
         return self.__public
 
+    def get_private(self):
+        return self.__private
+
+    def get_S(self):
+        return self.__S
+
     def to_sympy(self, system, quadratic: bool):
         variables = sp.symbols(f"x:{self.__n}", integer=True)
         sym = []
         if quadratic:
             for o in range(self.__o):
-                equation = 0
+                function = 0
                 for i in range(self.__n):
                     for j in range(self.__n):
-                        equation += int(system[o][0]
+                        function += int(system[o][0]
                                         [i, j])*variables[i]*variables[j]
                 for i in range(self.__n):
-                    equation += int(system[o][1][i])*variables[i]
-                equation += system[o][2]
-                sym.append(equation)
+                    function += int(system[o][1][i])*variables[i]
+                function += system[o][2]
+                sym.append(function)
         else:
             for i in range(self.__n):
-                equation = 0
+                function = 0
                 for j in range(self.__n):
-                    equation += int(system[0][i, j])*variables[j]
-                equation += system[1][i]
-                sym.append(equation)
+                    function += int(system[0][i, j])*variables[j]
+                function += system[1][i]
+                sym.append(function)
         return sym
 
     # Get composition of affine and quadratic map as public key
@@ -107,7 +113,7 @@ class UOV:
         return private
 
     # sign list of o integers mod K
-    def sign(self, Y: list):
+    def sign(self, y: list):
         failures = 0
 
         # inverting quadratic map
@@ -136,7 +142,7 @@ class UOV:
 
             # try to solve system, if not possible set different vinegar variables
             try:
-                x_o = np.linalg.solve(linear_all, self.__K(Y) - constant_all)
+                x_o = np.linalg.solve(linear_all, self.__K(y) - constant_all)
                 break
             except:
                 failures += 1
@@ -148,23 +154,23 @@ class UOV:
                 continue
 
         # safe results and vinegar variables as total result of inverted quadratic system
-        y_new = np.concatenate([x_o, x_v])
+        x_line = np.concatenate([x_o, x_v])
 
         # invert affine map over finite field
-        return np.linalg.solve(self.__S[0], y_new - self.__S[1])
+        return np.linalg.solve(self.__S[0], x_line - self.__S[1])
 
     # verify signature
-    def verify(self, signature, message, pk):
+    def verify(self, x, y, P):
         result = []
 
-        for i in range(len(pk)):
-            A = pk[i][0]
-            b = pk[i][1]
-            c = pk[i][2]
-            result.append(signature.transpose().dot(A).dot(
-                signature)+b.transpose().dot(signature)+c)
+        for i in range(len(P)):
+            A = P[i][0]
+            b = P[i][1]
+            c = P[i][2]
+            result.append(x.transpose().dot(A).dot(
+                x)+b.transpose().dot(x)+c)
 
-        return result == message
+        return result == y
 
 
 X = UOV(4, 4, 2)
