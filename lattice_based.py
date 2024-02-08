@@ -3,11 +3,12 @@ import sympy as sp
 import random
 import math
 
-# different random errors for seed = -1, same random errors for seed > -1
-seed = -1
 
-if seed >= 0:
-    random.seed(seed)
+# print readable values
+np.set_printoptions(suppress=True)
+
+seed = 0
+random.seed(seed)
 
 
 class GGH:
@@ -67,8 +68,7 @@ class GGH:
         i = 0
         while True:
             # Step 1
-            j = i + 1
-            while j <= n - 1:
+            for j in range(i+1, n):
                 # Step 2
                 if H[i, j] != 0:
                     r, p, q = self.gcd_ext(H[i, i], H[i, j])
@@ -153,7 +153,7 @@ class GGH:
 
 
 # since this one is hard-coded, you have to edit it here if you want to try another one
-# it has to be quadratic and the columnvectors should be linear independent
+# it has to be quadratic and the columnvectors should be linearly independent
 base = np.array([[4, -2, 1, 0],
                  [0, -1, 5, 2],
                  [-1, 6, 1, -1],

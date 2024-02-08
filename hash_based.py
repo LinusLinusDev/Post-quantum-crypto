@@ -19,7 +19,7 @@ class Lamport:
         self.__public = self.generate_public_key()
 
     # setup cryptographic hash function {0,1}^* -> {0,1}^n
-    def f(self, message):
+    def f(self, message: str) -> str:
         # hash message
         h = self.__hash(message.encode('UTF-8')).hexdigest()
         # cast hash to binary representation
@@ -31,7 +31,7 @@ class Lamport:
         return h_bin[:self.__n]
 
     # setup OWF function
-    def g(self, value):
+    def g(self, value: int) -> int:
         return int(self.f(str(value)), 2)
 
     # generate private key
@@ -52,8 +52,8 @@ class Lamport:
     def get_public(self):
         return self.__public
 
-    def sign(self, M):
-        M_bin = self.f(M)
+    def sign(self, y):
+        M_bin = self.f(y)
 
         signature = []
         # pick values from private key corresponding to h to create signature
@@ -62,11 +62,11 @@ class Lamport:
 
         return signature
 
-    def verify(self, S, M, pk):
+    def verify(self, x, y, pk):
         verify = True
-        M_bin = self.f(M)
+        M_bin = self.f(y)
         V = []
-        for s in S:
+        for s in x:
             V.append(self.g(s))
 
         # compare hashed values of signature with values of public key
