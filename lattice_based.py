@@ -7,7 +7,7 @@ import math
 # print readable values
 np.set_printoptions(suppress=True)
 
-seed = 0
+seed = 1
 random.seed(seed)
 
 
@@ -159,7 +159,7 @@ base = np.array([[4, -2, 1, 0],
                  [-1, 6, 1, -1],
                  [0, 1, -1, 6]], )
 
-X = GGH(base, 1)
+X = GGH(base, 2)
 
 message = np.array([3, -5, 6, -12])
 
